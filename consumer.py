@@ -4,6 +4,7 @@ from confluent_kafka import Consumer, KafkaError, KafkaException
 import cv2
 import numpy as np
 import time
+import os
 
 config = {
     'bootstrap.servers': 'localhost:9092',
@@ -39,11 +40,16 @@ class ConsumerThread:
 
                     # get metadata
                     frame_no = msg.timestamp()[1]
-                    video_name = msg.headers()[0][1].decode("utf-8")
+                    stream_name = msg.headers()[0][1].decode("utf-8")
 
-                    metadata_array.append((frame_no, video_name))
+                    metadata_array.append((frame_no, stream_name))
 
-                    cv2.imwrite(f"frames/{frame_no}.jpg", img)
+                    try:
+                        os.makedirs(f"frames/{stream_name}/")
+                    except Exception as e:
+                        pass
+                    
+                    cv2.imwrite(f"frames/{stream_name}/{frame_no}.jpg", img)
 
                     print(f"Wrote frame {frame_no}")
 

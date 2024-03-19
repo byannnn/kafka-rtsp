@@ -33,14 +33,14 @@ class ProducerThread:
     def __init__(self):
         self.producer = Producer(config)
 
-    def publishFrame(self, video_path):
-        cap = cv2.VideoCapture(video_path)
-        video_name = os.path.basename(video_path).split(".")[0]
+    def publish(self, rtsp_stream):
+        cap = cv2.VideoCapture(rtsp_stream)
+        stream_name = rtsp_stream.split("8554/")[1]
         frame_no = 1
         while cap.isOpened():
             _, frame = cap.read()
             # pushing every 3rd frame
-            if frame_no % 3 == 0:
+            if frame_no % 5 == 0:
                 _, img_buffer_arr = cv2.imencode(".jpg", frame)
                 frame_bytes = img_buffer_arr.tobytes()
 
@@ -50,22 +50,22 @@ class ProducerThread:
                     on_delivery=delivery_report,
                     timestamp=frame_no,
                     headers={
-                        "video_name": str.encode(video_name)
+                        "stream_name": str.encode(stream_name)
                     }
                 )
             frame_no += 1
         cap.release()
         return
         
-    def start(self, vid_paths):
+    def start(self, rtsp_streams):
         # runs until the processes in all the threads are finished
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(self.publishFrame, vid_paths)
+            executor.map(self.publish, rtsp_streams)
 
         self.producer.flush() # push all the remaining messages in the queue
 
 if __name__ == "__main__":
-    video_paths = [
+    rtsp_streams = [
         "rtsp://laurettatraining:8554/172-16-17-55",
         "rtsp://laurettatraining:8554/172-16-17-77",
         "rtsp://laurettatraining:8554/172-16-17-96",
@@ -73,5 +73,5 @@ if __name__ == "__main__":
     ]
 
     producer_thread = ProducerThread()
-    producer_thread.start(video_paths)
+    producer_thread.start(rtsp_streams)
     
